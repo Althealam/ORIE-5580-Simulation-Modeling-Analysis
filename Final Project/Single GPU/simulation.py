@@ -16,7 +16,6 @@ from scheduler import (
 )
 
 
-
 def generate_next_arrival(current_time: float, lam: float) -> float:
     """泊松到达：下一次到达时间 = 当前时间 + Exp(λ)."""
     return current_time + random.expovariate(lam)
@@ -47,8 +46,8 @@ def run_simulation(
     num_queries: int = 200,
     L_fixed: int = 64,
     B_fixed: int = 16,
-    gpu_c: float = 45.5,
-    gpu_a: float = 0.30,
+    gpu_c: float = 0.0455,
+    gpu_a: float = 0.0003,
     gpu_b0: int = 64,
     seed: int = 0,
     scheduler_name: str = "complete",
@@ -240,13 +239,13 @@ def run_simulation(
     print(f"Average total latency  : {avg_latency}")
 
     return {
-        "scheduler_name": scheduler_name,
-        "finished_queries": finished_queries,
-        "avg_ttft": avg_ttft,
-        "avg_latency": avg_latency,
-        "avg_tbt": avg_tbt,
-        "throughput": throughput,
-        "sim_end_time": sim_end_time,
+        "scheduler_name": scheduler_name, # 目前仿真使用的是哪一个scheduler，比如complete, prefill_first
+        "finished_queries": finished_queries, # 完成的query对象，包含arrival_time, ttft, finish_time, decoded
+        "avg_ttft": avg_ttft, # 所有完成的query的平均TTFT
+        "avg_latency": avg_latency, # 平均的延迟时间
+        "avg_tbt": avg_tbt, # 平均每个query的token间隔时间
+        "throughput": throughput, # 吞吐量=完成的query数/有效的仿真时间窗口
+        "sim_end_time": sim_end_time, # 仿真结束的时间戳
     }
 
 
@@ -267,7 +266,7 @@ def run_mm1_validation(
     这里不区分 prefill/decode，只是一个单阶段 server。
     返回:
         (avg_waiting_time, avg_system_time)
-    你可以和理论结果 W_q = λ / (μ(μ-λ)), W = 1 / (μ-λ) 对比。
+    可以和理论结果 W_q = λ / (μ(μ-λ)), W = 1 / (μ-λ) 对比。
     """
     random.seed(seed)
 
@@ -373,23 +372,23 @@ def run_mm1_validation(
     return avg_wait, avg_sys
 
 
-# ------------------ 简单命令行测试 ------------------ #
+# # ------------------ 简单命令行测试 ------------------ #
 
-if __name__ == "__main__":
-    # 1) LLM-serving 仿真：比较两个 scheduler
-    for name in ["complete", "prefill_first"]:
-        print("=" * 70)
-        print(f"Running LLM simulation with scheduler = {name}")
-        run_simulation(
-            lam=0.5,
-            num_queries=500,
-            L_fixed=64,
-            B_fixed=16,
-            scheduler_name=name,
-            seed=0,
-        )
+# if __name__ == "__main__":
+#     # 1) LLM-serving 仿真：比较两个 scheduler
+#     for name in ["complete", "prefill_first"]:
+#         print("=" * 70)
+#         print(f"Running LLM simulation with scheduler = {name}")
+#         run_simulation(
+#             lam=0.5,
+#             num_queries=500,
+#             L_fixed=64,
+#             B_fixed=16,
+#             scheduler_name=name,
+#             seed=0,
+#         )
 
-    # 2) M/M/1 验证例子
-    print("=" * 70)
-    print("Running M/M/1 validation example")
-    run_mm1_validation(lam=0.5, mu=1.0, num_customers=5000, seed=0)
+#     # 2) M/M/1 验证例子
+#     print("=" * 70)
+#     print("Running M/M/1 validation example")
+#     run_mm1_validation(lam=0.5, mu=1.0, num_customers=5000, seed=0)
